@@ -3,4 +3,5 @@ This application will keep track of the gradings of the currently active class a
 It interacts with a MySQL database to store and retrieve data.
 
 ## Data Model and MySQL Schema
+![]()
 ## Command Shell Java Application
