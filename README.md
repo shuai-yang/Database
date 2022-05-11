@@ -8,3 +8,4 @@ It interacts with a MySQL database to store and retrieve data.
 ![](https://github.com/shuai-yang/Database/blob/main/images/gradeCalculation.JPG)
 
 ![](https://github.com/shuai-yang/Database/blob/main/images/student-grades.JPG)
+![](https://github.com/shuai-yang/Database/blob/main/images/gradebook.JPG)
