@@ -7,4 +7,4 @@ It interacts with a MySQL database to store and retrieve data.
 ## Command Shell Java Application
 ![](https://github.com/shuai-yang/Database/blob/main/images/twogradings.JPG)
 
-![](https://github.com/shuai-yang/Database/blob/main/images/studentgrade.JPG)
+![](https://github.com/shuai-yang/Database/blob/main/images/student-grades.JPG)
