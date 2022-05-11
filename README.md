@@ -5,6 +5,6 @@ It interacts with a MySQL database to store and retrieve data.
 ## Data Model and MySQL Schema
 ![](https://github.com/shuai-yang/Database/blob/main/images/ermodel.JPG)
 ## Command Shell Java Application
-![](https://github.com/shuai-yang/Database/blob/main/images/twogradings.JPG)
+![](https://github.com/shuai-yang/Database/blob/main/images/gradeCalculation.JPG)
 
 ![](https://github.com/shuai-yang/Database/blob/main/images/student-grades.JPG)
