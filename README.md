@@ -9,4 +9,4 @@ It interacts with a MySQL database to store and retrieve data.
 
 ![](https://github.com/shuai-yang/Database/blob/main/images/student-grades.JPG)
 ![](https://github.com/shuai-yang/Database/blob/main/images/gradebook.JPG)<br>
-note: using UDFs or stored procedures to convert grading points to grading letter
+note: using VIEW to generate grading reports and using UDF or stored procedure to convert grading points to grading letter
