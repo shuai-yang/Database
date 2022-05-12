@@ -206,8 +206,7 @@ public class GradingManagementSystem {
 	         }
 	   }
 	}
-	
-	
+
 	/** Class Management: Active a class
 	 *  select-class CS410 Sp22
 	 *  selects the only section of CS410 in Spring 2022;
@@ -277,7 +276,6 @@ public class GradingManagementSystem {
 	         }
        }
 	}
-	
 	
 	/** Class Management: Active a class
 	 *  select-class CS410 Sp22 1
@@ -377,8 +375,7 @@ public class GradingManagementSystem {
                 se.printStackTrace();
             }
         }
-	}
-	
+	}	
 	
 	/** Category and Assignment Management(context of the currently active class): 
 	 *  add-category name weight (add-category homework 35)
@@ -439,7 +436,6 @@ public class GradingManagementSystem {
             }
         }
 	}
-	
 	
 	/** Category and Assignment Management(context of the currently active class): 
 	 *  show-categories
@@ -561,8 +557,7 @@ public class GradingManagementSystem {
             }
         }
 	}
-	
-	
+		
 	/** Category and Assignment Management(context of the currently active class): 
 	 *  show-assignments
 	 *  list the assignments with their points value, grouped by category
@@ -615,7 +610,6 @@ public class GradingManagementSystem {
             }
         }
 	}
-	
 	
 	/** Student Management(context of the currently active class): 
 	 *  add-student username 
@@ -695,8 +689,7 @@ public class GradingManagementSystem {
             }
         }
 	}
-	
-	
+		
 	/** Student Management(context of the currently active class): 
 	 *  add-student username studentid last first
 	 *  adds a student and enrolls them in the current class
@@ -780,7 +773,6 @@ public class GradingManagementSystem {
         }
 	}
 	
-	
 	/** Student Management(context of the currently active class): 
 	 *  show-students
 	 *  show all students enrolled in the current class
@@ -828,8 +820,7 @@ public class GradingManagementSystem {
             }
         }
 	}
-	
-	
+		
 	/** Student Management(context of the currently active class): 
 	 *  show-students string
 	 *  show all students with ‘string’ in their name or username(case-insensitive)
@@ -841,7 +832,7 @@ public class GradingManagementSystem {
 	    	connection = Database.getDatabaseConnection();
 	    	String sql = "SELECT  * \r\n"
 	    			 +"FROM students \r\n"
-	    			 +"WHERE BINARY username LIKE ? OR BINARY name LIKE ?;";
+	    			 +"WHERE username LIKE ? OR name LIKE ?;"; //WHERE BINARY username LIKE ? OR BINARY name LIKE ?
 	    	sqlPreparedStatement = connection.prepareStatement(sql);
 	        sqlPreparedStatement.setString(1, '%'+targetName+'%');
 	        sqlPreparedStatement.setString(2, '%'+targetName+'%');	
@@ -878,8 +869,7 @@ public class GradingManagementSystem {
             }
         }
 	}
-	
-	
+		
 	/** Student Management(context of the currently active class): 
 	 *  grade assignmentname username grade
 	 *  assign the 'grade' for student with 'username' for 'assignmentname'
@@ -970,7 +960,6 @@ public class GradingManagementSystem {
         }
 	}
 	
-	
 	/** Grade Reporting(context of the currently active class): 
 	 *  student-grades username
 	 *  show student's current grades with subtotals for each category and the overall grade in the class
@@ -980,36 +969,43 @@ public class GradingManagementSystem {
 		PreparedStatement sqlPreparedStatement = null;
 		try {
 	    	connection = Database.getDatabaseConnection();
-	    	String sql = "SELECT \r\n"
+	    	
+	    	String sql = "CREATE OR REPLACE VIEW t1 AS \r\n"
+	    			 +"SELECT username,\r\n"
+	    			 +"if(c.name is null, '', c.name)as category, \r\n"
+	    			 +"if(a.name is null and c.name!= '' , 'Subtotal', if(c.name is null, 'Grand Total', a.name)) as assignment, \r\n"
+	    			 +"sum(point_value) as total_points,  \r\n"
+	    			 +"sum(if(grade is not null and (a.name not in ('Subtotal','Grand Total')), point_value,'')) as attempted_total_points, \r\n"
+	    			 +"sum(grade) as received_points \r\n"
+	    			 +"FROM assignments a \r\n"
+	    			 +"LEFT JOIN categories c \r\n"
+	    			 +"ON a.category_id = c.category_id \r\n"
+	    			 +"LEFT JOIN assignment_grade g \r\n"
+	    			 +"ON a.assignment_id= g.assignment_id \r\n"
+	    			 +"LEFT JOIN students s \r\n"
+	    			 +"ON g.student_id = s.student_id \r\n"
+	    			 +"WHERE a.class_id = " + active_class_id + "  AND username =? \r\n"
+	    			 +"GROUP BY  username, c.name, a.name WITH ROLLUP;";
+	    	//System.out.println(sql);
+	    	sqlPreparedStatement = connection.prepareStatement(sql);
+	        sqlPreparedStatement.setString(1, username);
+	    	sqlPreparedStatement.executeUpdate();
+	    	//System.out.println("VIEW is created");
+	    	
+	    	sql = "SELECT \r\n"
 	    			 +"category, assignment, total_points, received_points, received_percent, weight, total_grade,\r\n"
 	    			 +"attempted_total_points, attempted_received_percent, \r\n"
 	    			 +"if(assignment=\'Subtotal\' , round(attempted_total_points/attempted_grand_total_points,2)*100, \'\'), \r\n"
 	    			 +"if(assignment=\'Subtotal\' or assignment=\'Grand Total\', round((received_points/attempted_total_points *round(attempted_total_points/attempted_grand_total_points,2)*100),2),\'\') \r\n"
 	    			 +"FROM ("
 		        	 	+"SELECT t1.*, \r\n"
-		    			    +"if(assignment=\'Subtotal\' and assignment!=\'Grand Total\', round(received_points/total_points, 2), \'\') as received_percent, \r\n"
-		    			    +"if(assignment=\'Subtotal\' and assignment!=\'Grand Total\', round(received_points/attempted_total_points, 2), \'\') as attempted_received_percent, \r\n"
+		    			    +"if(assignment=\'Subtotal\', round(received_points/total_points, 2), \'\') as received_percent, \r\n"
+		    			    +"if(assignment=\'Subtotal\', round(received_points/attempted_total_points, 2), \'\') as attempted_received_percent, \r\n"
 		    			    + "if(assignment=\'Subtotal\' ,weight,\'\') as weight, \r\n"
 		    			    + "if(assignment=\'Subtotal\', round(received_points/total_points *weight, 2), if(assignment=\'Grand Total\',round(received_points/total_points*100,2),\'\')) as total_grade, \r\n"
 		    			    + "(select distinct attempted_total_points from t1 where assignment=\'Grand Total\') as attempted_grand_total_points, \r\n"
 		    			    + "(select distinct total_points from t1 where assignment=\'Grand Total\') as grand_total_points \r\n"
-	    			    +"FROM ( \r\n"
-				        	 	+"SELECT username,  \r\n"
-					        	 	+"if(c.name is null, \'\', c.name)as category,  \r\n"
-					        	 	+"if(a.name is null and c.name!=\'\' , \'Subtotal\', if(c.name is null, \'Grand Total\', a.name)) as assignment,   \r\n"
-					        	 	+"sum(point_value) as total_points,  \r\n"
-					        	 	+"sum(if(grade is not null and (a.name not in (\'Subtotal\',\'Grand Total\')), point_value,\'\')) as attempted_total_points,  \r\n"
-					        	 	+"sum(grade) as received_points \r\n"
-					        	+"FROM assignments a  \r\n"
-					        	+"LEFT JOIN categories c  \r\n"
-					        	+"ON a.category_id = c.category_id  \r\n"
-					        	+"LEFT JOIN assignment_grade g  \r\n"
-					        	+"ON a.assignment_id= g.assignment_id  \r\n"
-					        	+"LEFT JOIN students s  \r\n"
-					        	+"ON g.student_id = s.student_id  \r\n"
-					        	+"WHERE a.class_id = "+active_class_id+"  AND username = ?   \r\n"
-					        	+"GROUP BY  username, c.name, a.name WITH ROLLUP  \r\n"
-				        +") t1 \r\n"
+		    			+"FROM t1 \r\n"
 				        +"LEFT JOIN ( \r\n"
 					        +"SELECT class_category.category_id, categories.name, class_category.weight  \r\n"
 			        	 	+"FROM  class_category  \r\n"
@@ -1022,7 +1018,7 @@ public class GradingManagementSystem {
 		            +"WHERE t.username is not null;";
 	    	//System.out.println(sql);
 	    	sqlPreparedStatement = connection.prepareStatement(sql);
-	        sqlPreparedStatement.setString(1, username);
+	        //sqlPreparedStatement.setString(1, username);
 	    	ResultSet rs = sqlPreparedStatement.executeQuery(); 
 	    	if(!rs.next()) {
         		System.out.println("Currently no grades for student \'" + username + "\' in current class.");
@@ -1068,8 +1064,8 @@ public class GradingManagementSystem {
 	}
 	
 	/** Grade Reporting(context of the currently active class): 
-	 *  show-students string
-	 *  show all students with ‘string’ in their name or username(case-insensitive)
+	 *  gradebook
+	 *  show the current class’s gradebook: students (username, student ID, and name), along with their total grades in the class
 	 */
 	public static void showClassGradebook() {
 		Connection connection = null;
@@ -1077,35 +1073,41 @@ public class GradingManagementSystem {
 		try {
 	    	connection = Database.getDatabaseConnection();
 	    	sqlStatement = connection.createStatement();
-	    	String sql = "SELECT \r\n"
-	    			 +"username,\r\n"
+	    	String sql = "CREATE OR REPLACE VIEW t1 AS \r\n"
+	    			 +"SELECT username, s.student_id, s.name, \r\n"
+	    			 +"if(c.name is null, '', c.name)as category, \r\n"
+	    			 +"if(a.name is null and c.name!= '' , 'Subtotal', if(c.name is null, 'Grand Total', a.name)) as assignment, \r\n"
+	    			 +"sum(point_value) as total_points,  \r\n"
+	    			 +"sum(if(grade is not null and (a.name not in ('Subtotal','Grand Total')), point_value,'')) as attempted_total_points, \r\n"
+	    			 +"sum(grade) as received_points \r\n"
+	    			 +"FROM assignments a \r\n"
+	    			 +"LEFT JOIN categories c \r\n"
+	    			 +"ON a.category_id = c.category_id \r\n"
+	    			 +"LEFT JOIN assignment_grade g \r\n"
+	    			 +"ON a.assignment_id= g.assignment_id \r\n"
+	    			 +"LEFT JOIN students s \r\n"
+	    			 +"ON g.student_id = s.student_id \r\n"
+	    			 +"WHERE a.class_id = " + active_class_id + "\r\n"
+	    			 +"GROUP BY  username, s.student_id, s.name, c.name, a.name WITH ROLLUP;";
+	    	//System.out.println(sql);
+	    	sqlStatement.executeUpdate(sql);
+	    	//System.out.println("VIEW is created");
+	    	
+	    	sql = "SELECT \r\n"
+	    			 +"username, student_id, name, \r\n"
 	    			 +"total_grade, \r\n"
-	    			 +"if(assignment=\'Subtotal\' or assignment=\'Grand Total\', round((received_points/attempted_total_points *round(attempted_total_points/attempted_grand_total_points,2)*100),2),\'\') \r\n"
+	    			 +"convert_to_letter_grade(total_grade), \r\n"
+	    			 +"if(assignment='Subtotal' or assignment='Grand Total', round((received_points/attempted_total_points *round(attempted_total_points/attempted_grand_total_points,2)*100),2),''), \r\n"
+	    			 +"convert_to_letter_grade(if(assignment='Subtotal' or assignment='Grand Total', round((received_points/attempted_total_points *round(attempted_total_points/attempted_grand_total_points,2)*100),2),'')) \r\n"
 	    			 +"FROM ("
 		        	 	+"SELECT t1.*, \r\n"
-		    			    +"if(assignment=\'Subtotal\' and assignment!=\'Grand Total\', round(received_points/total_points, 2), \'\') as received_percent, \r\n"
-		    			    +"if(assignment=\'Subtotal\' and assignment!=\'Grand Total\', round(received_points/attempted_total_points, 2), \'\') as attempted_received_percent, \r\n"
-		    			    + "if(assignment=\'Subtotal\' ,weight,\'\') as weight, \r\n"
-		    			    + "if(assignment=\'Subtotal\', round(received_points/total_points *weight, 2), if(assignment=\'Grand Total\',round(received_points/total_points*100,2),\'\')) as total_grade, \r\n"
-		    			    + "(select distinct attempted_total_points from t1 where assignment=\'Grand Total\') as attempted_grand_total_points, \r\n"
-		    			    + "(select distinct total_points from t1 where assignment=\'Grand Total\') as grand_total_points \r\n"
-	    			    +"FROM ( \r\n"
-				        	 	+"SELECT username,  \r\n"
-					        	 	+"if(c.name is null, \'\', c.name)as category,  \r\n"
-					        	 	+"if(a.name is null and c.name!=\'\' , \'Subtotal\', if(c.name is null, \'Grand Total\', a.name)) as assignment,   \r\n"
-					        	 	+"sum(point_value) as total_points,  \r\n"
-					        	 	+"sum(if(grade is not null and (a.name not in (\'Subtotal\',\'Grand Total\')), point_value,\'\')) as attempted_total_points,  \r\n"
-					        	 	+"sum(grade) as received_points \r\n"
-					        	+"FROM assignments a  \r\n"
-					        	+"LEFT JOIN categories c  \r\n"
-					        	+"ON a.category_id = c.category_id  \r\n"
-					        	+"LEFT JOIN assignment_grade g  \r\n"
-					        	+"ON a.assignment_id= g.assignment_id  \r\n"
-					        	+"LEFT JOIN students s  \r\n"
-					        	+"ON g.student_id = s.student_id  \r\n"
-					        	+"WHERE a.class_id = "+active_class_id+"    \r\n"
-					        	+"GROUP BY  username, c.name, a.name WITH ROLLUP  \r\n"
-				        +") t1 \r\n"
+		    			    +"if(assignment='Subtotal', round(received_points/total_points, 2), '') as received_percent, \r\n"
+		    			    +"if(assignment='Subtotal', round(received_points/attempted_total_points, 2), '') as attempted_received_percent, \r\n"
+		    			    + "if(assignment='Subtotal' ,weight,'') as weight, \r\n"
+		    			    + "if(assignment='Subtotal', round(received_points/total_points *weight, 2), if(assignment='Grand Total',round(received_points/total_points*100,2),'')) as total_grade, \r\n"
+		    			    + "(select distinct attempted_total_points from t1 where assignment='Grand Total'and username is not null) as attempted_grand_total_points, \r\n"
+		    			    + "(select distinct total_points from t1 where assignment='Grand Total'and username is not null) as grand_total_points \r\n"
+	    			    +"FROM t1 \r\n"
 				        +"LEFT JOIN ( \r\n"
 					        +"SELECT class_category.category_id, categories.name, class_category.weight  \r\n"
 			        	 	+"FROM  class_category  \r\n"
@@ -1115,21 +1117,26 @@ public class GradingManagementSystem {
 				        +") t2 \r\n"
 				        +"ON t1.category = t2.name \r\n"
 		            +") t \r\n"
-		            +"WHERE t.assignment=\'Grand Total\' and t.username is not null;"; 
+		            +"WHERE assignment='Grand Total' and name is not null \r\n"
+		            +"ORDER BY t.student_id;";
 	    	//System.out.println(sql);
 	    	ResultSet rs = sqlStatement.executeQuery(sql); 
 	    	if(!rs.next()) {
         		System.out.println("No grades added in current class.");
         		return;
 	    	};
-        	System.out.println("Username | Total | Attempted |");
-        	System.out.println("         | Grade | Grade     |");
+        	System.out.println("Username  | Student |      Name    |  Total  |  Total        | Attempted |  Attempted     |");
+        	System.out.println("          | ID      |              |  Grade  |  Grade Letter | Grade     |  Grade Letter  |");
         	System.out.println("-".repeat(128));
         	do{ 
         		String username = rs.getString("username"); 
+        		String studentID = rs.getString("student_id"); 
+        		String name = rs.getString("name"); 
         		String total_grade = rs.getString("total_grade"); 
+        		String total_grade_letter = rs.getString("convert_to_letter_grade(total_grade)"); 
         		String attempted_grade = rs.getString("if(assignment='Subtotal' or assignment='Grand Total', round((received_points/attempted_total_points *round(attempted_total_points/attempted_grand_total_points,2)*100),2),'')"); 
-        		System.out.format("%10s%10s%10s\n", username, total_grade, attempted_grade);
+        		String attempted_grade_letter = rs.getString("convert_to_letter_grade(if(assignment=\'Subtotal\' or assignment=\'Grand Total\', round((received_points/attempted_total_points *round(attempted_total_points/attempted_grand_total_points,2)*100),2),\'\'))"); 
+        		System.out.format("%10s%10s%15s%10s%12s%12s%10s\n", username, studentID, name, total_grade, total_grade_letter, attempted_grade, attempted_grade_letter);
         	}while(rs.next()); 
        	 	rs.close();
 		}
@@ -1159,7 +1166,6 @@ public class GradingManagementSystem {
         return commandArguments;
     }
 	
-
 	/** MAIN METHOD **/
 	public static void main(String[] args) {
 		 System.out.println("Welcome to the Grading Management System");
@@ -1172,8 +1178,35 @@ public class GradingManagementSystem {
 	         List<String> commandArguments = parseArguments(command);
 	         //System.out.println(commandArguments.size()); 
 	         command = commandArguments.get(0);
-	         
-	         if (command.equals("test") && commandArguments.get(1).equals("connection")) {
+	         if (command.equals("help")) {
+	                System.out.println("-".repeat(38) + "Help" + "-".repeat(38));
+	                System.out.println("test connection \n\ttests the database connection");
+
+	                System.out.println("list-classes \n\tlist all classes with the # of students enrolled in each class");
+	                System.out.println("new-class <course_number> <term> <section_number> <description>\n\tcreate a class with course_number, term, section_number, description");
+	                System.out.println("select-class <course_number>\n\tif there's only one section of course_number in the latest term, active that section as currently-activate class, otherwise the activation failed");
+	                System.out.println("select-class <course_number> <term>\n\tif there's only one section of course_number in the term, active that section as currently-activate class, otherwise the activation failed");
+	                System.out.println("select-class <course_number> <term> <section_number>\n\tactive the section_number of course_number in the term as currently-activate class");
+	                System.out.println("show-class \n\tshow the currently-active class");
+
+	                System.out.println("add-category <category_name> <weight> \n\tin the context of currently-active class, add a new grading category with category_name and weight to the current class");
+	                System.out.println("show-categories \n\tin the context of currently-active class, list all grading categories with their weights of the current class");
+	                System.out.println("add-assignment <assignment_name> <category_name> <description> <points>\n\tin the context of currently-active class, add a new assignment_name of category_name with description and points to the current class");
+	                System.out.println("show-assignments \n\tin the context of currently-active class, list all assignments of the current class with their points value, grouped by category");
+	                
+	                System.out.println("add-student <username> \n\tin the context of currently-active class, enroll an existing student to the current class");
+	                System.out.println("add-student <username> <studentid> <last_name> <first_name> \n\tin the context of currently-active class, if the studentid doesn't exist, enroll this new student username to the current class with studentid, last_name and first_name\n\t"
+	                		+ "if the studentid exists, update the username, last_name and first_name if they are different from the existing ones");
+	                System.out.println("show-students \n\tin the context of currently-active class, show all students enrolled in the current class");
+	                System.out.println("show-students <string> \n\tin the context of currently-active class, show all enrolled students with ‘string’ in their name or username(case-insensitive)");
+	                
+	                System.out.println("grade <assignment_name> <username> <grade> \n\tin the context of currently-active class, assign or update the grade of assignment_name for username");
+	                System.out.println("student-grades <username> \n\tin the context of currently-active class, show username's current grades with subtotals for each category and the overall grade in the current class");
+	                System.out.println("gradebook \n\tin the context of currently-active class, show the current class’s gradebook: students (username, student ID, and name), along with their total grades in the class");
+	                
+	                System.out.println("help \n\tlists help information");
+	                System.out.println("quit \n\tExits the program");
+	         } else if (command.equals("test") && commandArguments.get(1).equals("connection")) {
 	                Database.testConnection();
 	         } else if (command.equals("list-classes")) {
 	        	 listAllClassesWithNumStudents();
@@ -1207,7 +1240,7 @@ public class GradingManagementSystem {
 	         } else if(command.equals("gradebook")) {
 	        	 showClassGradebook();	
 	         } else if (!(command.equals("quit") || command.equals("exit"))) {
-	             System.out.println("Command not found");
+	             System.out.println("Command not found. Enter 'help' for list of commands");
 	         }
 	         System.out.println("-".repeat(128));
 	     }while(!(command.equals("quit") || command.equals("exit")));
