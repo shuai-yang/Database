@@ -1,4 +1,4 @@
-/* Put all table create statements in this file as well as any UDFs */
+/* Put all table create statements in this file as well as any UDFs or stored procedures.*/
 
 CREATE DATABASE IF NOT EXISTS cs_410_final_project;
 USE cs_410_final_project;
@@ -9,8 +9,7 @@ DROP TABLE IF EXISTS categories;
 DROP TABLE IF EXISTS class_category;
 DROP TABLE IF EXISTS assignments;
 DROP TABLE IF EXISTS assignment_grade;
-DROP FUNCTION IF EXISTS claculate_total_grade;
-DROP FUNCTION IF EXISTS claculate_attempted_grade;
+DROP FUNCTION IF EXISTS convert_to_letter_grade; 
 
 CREATE TABLE IF NOT EXISTS students(
 	 student_id INT AUTO_INCREMENT,
@@ -65,3 +64,18 @@ CREATE TABLE IF NOT EXISTS assignment_grade(
 	FOREIGN KEY(student_id) REFERENCES students(student_id),
 	FOREIGN KEY(assignment_id) REFERENCES assignments(assignment_id)
 );
+
+/* UDF called convert_to_grade_point that converts letter grades into grade points */ 
+DELIMITER $$; 
+CREATE FUNCTION convert_to_letter_grade(points INT)
+ RETURNS CHAR(2)
+ DETERMINISTIC
+BEGIN
+	IF points >=90 THEN RETURN 'A';
+    ELSEIF points >=80 THEN RETURN 'B';
+    ELSEIF points >=70 THEN RETURN 'C';
+    ELSEIF points >=60 THEN RETURN 'D';
+    ELSEIF letter_grade >=0 THEN RETURN 'F';
+	ELSEIF letter_grade IS NULL THEN RETURN NULL;
+    END IF;
+END $$;
