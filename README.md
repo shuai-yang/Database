@@ -1,6 +1,5 @@
 # Database
-This application will keep track of the gradings of the currently active class - calculate total grade points and generate the grading book with grade letter. <br>
-It interacts with a MySQL database to store and retrieve data.
+This application will keep track of the gradings of the currently active class - calculate total grade points and generate the grading book with grade letter. It interacts with a MySQL database to store and retrieve data.
 
 ## Data Model and MySQL Schema
 ![](https://github.com/shuai-yang/Database/blob/main/images/ermodel.JPG)
